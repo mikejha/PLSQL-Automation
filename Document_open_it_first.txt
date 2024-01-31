@@ -1,0 +1,78 @@
+<UNDERSTAND THE REQUIREMENT:>
+
+We have 2 tables:
+
+1.systemcheck_config: Contains the information of EXPECTED file formats, it has below columns:
+  >brand                 VARCHAR2(50) : Contains Brand 
+  >module                VARCHAR2(50) : Contains Module
+  >filefix               VARCHAR2(100): Encoded EXPECTED file format
+  >inout                 VARCHAR2(10) : Download/Upload type file
+  >filecreate_daysbehind NUMBER,      : File should be generated on (sysdate - filecreate_daysbehind) i.e. (todays date - filecreate_daysbehind).
+  >filecreate_days       VARCHAR2(20) : On Daily, Weekly and Monthly basis, file should run on specific frequency I.E. Daily or W-1,2,3,4,5 or M-15,26,27 
+  >filecreate_hour       NUMBER       : On the day when file has generated, if its after 12AM, then it will be count as it has generated on next day(so the diff of hours from 12 should decide the file generated day) -- ignore it.
+
+2.SYSTEMSTATUS: Contains the information of ACTUAL file formats, it has below columns: 
+
+  >brand      VARCHAR2(20) : Contains Brand 
+  >module     VARCHAR2(20) : Contains Module
+  >attribute  VARCHAR2(100): Contains Attribute
+  >value      VARCHAR2(100): Contains ACTUAL received file
+  >insertedon DATE         : Contains inserted date
+   
+for example:
+
+We have a Brand: MYER and one of its Module CLAIM is a IN (inout column) file, 
+
+>>in systemcheck_config table, its filefix (Encoded EXPECTED file format) is present as below:
+
+TC1_AU_00001T_<#YYYYMMDD>_<##HH24MISS>.xml
+
+Name of the file contains: 
+PREFIX + DATE_FORMAT + MIDDLE + TIME_FORMAT + SUFFIX
+
+It Means, 
+
+TC1_AU_00001T_      is the prefix of the file.
+YYYYMMDD            is the date format of the file
+_                   is the middle of the file 
+HH24MISS            is the time format of the file
+.xml                is the suffix of the file
+
+We have used encoding as <#DATE_FORMAT> and <##TIME_FORMAT> for getting the comparision of expected positions and actual positions of the date and time.
+
+>> in SYSTEMSTATUS table, the actual file for MYER and one of its Module CLAIM has received as below:
+
+TC1_AU_00001T_20231211_001011.xml
+
+Check 1:
+Compare the PREFIX ,DATE_FORMAT ,MIDDLE ,TIME_FORMAT ,SUFFIX individually.
+So the above received (TC1_AU_00001T_20231211_001011.xml) file looks fine.
+
+Check 2:
+Now we have to check the filecreate_daysbehind of the file, for Brand: MYER and one of its Module CLAIM the filecreate_daysbehind is 2, so the expected date format of the file will be calculated as below:
+(sysdate - filecreate_daysbehind) i.e.
+suppose todays date is 30th Jan 2024, then 
+(30/01/2024 - 2) will be 28/01/2024 and format is YYYYMMDD so, it will be 20240128.
+So for today, the Expected file for CLAIM will be TC1_AU_00001T_20240128_001011.xml
+(We can ignore time format at this stage)
+
+Check 3:
+Now we have to check filecreate_days,for Brand: MYER and one of its Module CLAIM the filecreate_days is W-1,2,4,5 it means, its a weekly file which is going to generate on 1 - monday, 2-tuesday..5-friday.
+Suppose today is Wedneday, so the number for wednesday is which is not present in the filecreate_days.
+So, may be the actual file has passed all the above checks 1 and 2, but it should not generate today, hense failed.
+
+In a same manner, we have to generate the status of all the received modules for different brands and save it in temp_table
+
+<STEPS YOU HAVE TO DO NOW:>(Only for ORACLE supporting RDBMS)
+
+1.Create the table first         : run below scripts:
+ 3_Script_CreateTable 
+ 4_Script_CreateTable
+ 5_Script_CreateTable
+2.Then insert the values in it   : run below scripts:
+ 3_Script_InsertintoTable
+ 4_Script_InsertintoTable
+3.Create the package: REQUIREMENT: run below script:
+ 1_PKG_HEALTHCHECK_HC
+ 
+<YOU CAN CREATE YOUR OWN LOGIC AND AUTOMATE THE VALIDATION PROCESS, THIS IS THE ACTUAL BUSINESS REQUIREMENT FOR A PL-SQL DEVELOPER, YOU CAN EXPERIENCE>
